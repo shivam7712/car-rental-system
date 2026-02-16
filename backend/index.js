@@ -5,6 +5,7 @@ import Booking from './models/Booking.js'
 import Car from './models/Car.js'
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
+import jwt from 'jsonwebtoken';
 dotenv.config();
 
 const DB_URL = process.env.MONGODB_URI;
@@ -66,14 +67,23 @@ app.post('/api/auth/signup', checkDuplicateEmail ,async(req, res)=>{
         const saltRound = 10;
         const hashedPassword = await bcrypt.hash(password, saltRound)
 
-        await User.create({
+        const newUser = await User.create({
             name,
             email,
             password: hashedPassword,
             role: role || "customer"
         })
 
-        res.json({msg: "user created successfully"});
+        const token = jwt.sign(
+            { userId: newUser._id, role: newUser.role},
+            jwtKey,
+            {expiresIn: "1d"}
+        );
+
+        res.status(201).json({
+            msg: "user created successfully",
+            token
+        });
     }
     catch(err) {
         console.log(err.message)
